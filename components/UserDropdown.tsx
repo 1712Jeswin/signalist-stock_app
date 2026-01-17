@@ -28,7 +28,7 @@ const UserDropdown = ({ user }: {user: User}) => {
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-3 text-gray-4 hover:text-yellow-500">
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src="https://www.google.com/imgres?q=kim%20dokja&imgurl=https%3A%2F%2Fi1.sndcdn.com%2Fartworks-z6xJj9jJ7mzTx01j-bDOuHQ-t500x500.jpg&imgrefurl=https%3A%2F%2Fsoundcloud.com%2Fphoeni-x-797891979%2Fcompanion&docid=MQUaMaWv9pJ5CM&tbnid=-IWa7urmsXo49M&vet=12ahUKEwj2qo_cppKSAxVmQ2cHHcnAIn4QM3oECCAQAA..i&w=500&h=500&hcb=2&ved=2ahUKEwj2qo_cppKSAxVmQ2cHHcnAIn4QM3oECCAQAA" />
+                        <AvatarImage src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlZ_BvrdLTuVjsT04TYS4XfCPFxSVJBDtN5A&s" />
                         <AvatarFallback className="bg-yellow-500 text-yellow-900 text-sm font-bold">
                             {user.name[0]}
                         </AvatarFallback>
@@ -44,7 +44,7 @@ const UserDropdown = ({ user }: {user: User}) => {
                 <DropdownMenuLabel>
                     <div className="flex relative items-center gap-3 py-2">
                         <Avatar className="h-10 w-10">
-                            <AvatarImage src="https://www.google.com/imgres?q=kim%20dokja&imgurl=https%3A%2F%2Fi1.sndcdn.com%2Fartworks-z6xJj9jJ7mzTx01j-bDOuHQ-t500x500.jpg&imgrefurl=https%3A%2F%2Fsoundcloud.com%2Fphoeni-x-797891979%2Fcompanion&docid=MQUaMaWv9pJ5CM&tbnid=-IWa7urmsXo49M&vet=12ahUKEwj2qo_cppKSAxVmQ2cHHcnAIn4QM3oECCAQAA..i&w=500&h=500&hcb=2&ved=2ahUKEwj2qo_cppKSAxVmQ2cHHcnAIn4QM3oECCAQAA" />
+                            <AvatarImage src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlZ_BvrdLTuVjsT04TYS4XfCPFxSVJBDtN5A&s" />
                             <AvatarFallback className="bg-yellow-500 text-yellow-900 text-sm font-bold">
                                 {user.name[0]}
                             </AvatarFallback>
