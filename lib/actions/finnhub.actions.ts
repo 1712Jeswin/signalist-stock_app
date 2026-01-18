@@ -3,6 +3,9 @@
 import { getDateRange, validateArticle, formatArticle } from '@/lib/utils';
 import { POPULAR_STOCK_SYMBOLS } from '@/lib/constants';
 import { cache } from 'react';
+import { getWatchlistSymbolsByEmail } from '@/lib/actions/watchlist.actions';
+import { auth } from '@/lib/better-auth/auth';
+import { headers } from 'next/headers';
 
 // Define internal interface for mapping profiles
 interface StockProfile {
@@ -105,8 +108,33 @@ export async function getNews(symbols?: string[]): Promise<MarketNewsArticle[]> 
     }
 }
 
+export async function getQuote(symbol: string): Promise<QuoteData> {
+    const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+    const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(symbol.toUpperCase())}&token=${token}`;
+    return await fetchJSON<QuoteData>(url, 60); // Cache for 1 minute
+}
+
+export async function getCompanyProfile(symbol: string): Promise<ProfileData> {
+    const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+    const url = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${encodeURIComponent(symbol.toUpperCase())}&token=${token}`;
+    return await fetchJSON<ProfileData>(url, 3600); // Cache for 1 hour
+}
+
+export async function getFinancials(symbol: string): Promise<FinancialsData> {
+    const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+    const url = `${FINNHUB_BASE_URL}/stock/metric?symbol=${encodeURIComponent(symbol.toUpperCase())}&metric=all&token=${token}`;
+    return await fetchJSON<FinancialsData>(url, 3600); // Cache for 1 hour
+}
+
 export const searchStocks = cache(async (query?: string): Promise<StockWithWatchlistStatus[]> => {
     try {
+        const session = await auth.api.getSession({ headers: await headers() });
+        const userEmail = session?.user?.email;
+        let watchlistSymbols: string[] = [];
+        if (userEmail) {
+            watchlistSymbols = await getWatchlistSymbolsByEmail(userEmail);
+        }
+
         const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
         if (!token) {
             // If no token, log and return empty to avoid throwing per requirements
@@ -173,7 +201,7 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
                     name,
                     exchange,
                     type,
-                    isInWatchlist: false,
+                    isInWatchlist: watchlistSymbols.includes(upper),
                 };
                 return item;
             })

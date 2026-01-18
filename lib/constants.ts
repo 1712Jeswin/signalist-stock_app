@@ -34,9 +34,10 @@ export const ALERT_TYPE_OPTIONS = [
 ];
 
 export const CONDITION_OPTIONS = [
-    { value: 'greater', label: 'Greater than (>)' },
-    { value: 'less', label: 'Less than (<)' },
-];
+    { value: 'greater', label: 'Price greater than (>)' },
+    { value: 'less', label: 'Price less than (<)' },
+    { value: 'equal', label: 'Price equals (=)' },
+] as const;
 
 // TradingView Charts
 export const MARKET_OVERVIEW_WIDGET_CONFIG = {
