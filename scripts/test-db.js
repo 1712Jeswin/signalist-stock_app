@@ -5,8 +5,11 @@
  - Exits with code 0 on success, 1 on failure
 */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const fs = require('fs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require('path');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const mongoose = require('mongoose');
 
 function loadDotEnv() {
