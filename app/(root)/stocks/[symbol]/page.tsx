@@ -57,6 +57,7 @@ const StockDetails = async ({ params }: StockDetailsPageProps) => {
                     symbol={symbol}
                     company={companyName}
                     isInWatchlist={isInWatchlist}
+                    userEmail={userEmail}
                 />
                 <TradingViewWidget
                     scriptUrl={`${scriptUrl}technical-analysis.js`}

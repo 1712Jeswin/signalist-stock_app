@@ -125,6 +125,7 @@ declare global {
     type ProfileData = {
         name?: string;
         marketCapitalization?: number;
+        logo?: string;
     };
 
     type FinancialsData = {
@@ -134,6 +135,7 @@ declare global {
     type SelectedStock = {
         symbol: string;
         company: string;
+        logo?: string;
         currentPrice?: number;
     };
 
@@ -145,6 +147,7 @@ declare global {
         userId: string;
         symbol: string;
         company: string;
+        logo?: string;
         addedAt: Date;
         currentPrice?: number;
         changePercent?: number;
@@ -184,19 +187,16 @@ declare global {
     };
 
     type AlertData = {
-        symbol: string;
-        company: string;
-        alertName: string;
-        alertType: 'upper' | 'lower';
+        condition: 'greater' | 'less' | 'equal';
         threshold: string;
+        frequency: 'once' | 'daily';
     };
 
     type AlertModalProps = {
-        alertId?: string;
-        alertData?: AlertData;
-        action?: string;
         open: boolean;
         setOpen: (open: boolean) => void;
+        stock: SelectedStock | null;
+        userEmail: string;
     };
 
     type RawNewsArticle = {
@@ -212,14 +212,18 @@ declare global {
     };
 
     type Alert = {
-        id: string;
+        threshold: number;
+        alertType: string;
+        _id: string;
+        userId: string;
         symbol: string;
         company: string;
-        alertName: string;
-        currentPrice: number;
-        alertType: 'upper' | 'lower';
-        threshold: number;
-        changePercent?: number;
+        logoUrl?: string;
+        condition: 'greater' | 'less' | 'equal';
+        targetPrice: number;
+        frequency: 'once' | 'daily';
+        isActive: boolean;
+        createdAt: string;
     };
 }
 
