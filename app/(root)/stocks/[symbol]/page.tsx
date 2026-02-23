@@ -1,82 +1,65 @@
-import TradingViewWidget from "@/components/TradingViewWidget";
-import WatchlistButton from "@/components/WatchlistButton";
+import React from 'react';
+import TradingViewWidget from '@/components/TradingViewWidget';
+import AddToWatchlistButton from '@/components/AddToWatchlistButton';
+import { checkWatchlistStatus } from '@/lib/actions/watchlist.actions.server';
 import {
     SYMBOL_INFO_WIDGET_CONFIG,
     CANDLE_CHART_WIDGET_CONFIG,
-    BASELINE_WIDGET_CONFIG,
-    TECHNICAL_ANALYSIS_WIDGET_CONFIG,
     COMPANY_PROFILE_WIDGET_CONFIG,
     COMPANY_FINANCIALS_WIDGET_CONFIG,
-} from "@/lib/constants";
-import { searchStocks } from "@/lib/actions/finnhub.actions";
-import { getWatchlistSymbolsByEmail } from "@/lib/actions/watchlist.actions";
-import { auth } from "@/lib/better-auth/auth";
-import { headers } from "next/headers";
+    DEFAULT_HEIGHT
+} from '@/lib/constants';
 
-const StockDetails = async ({ params }: StockDetailsPageProps) => {
+interface StockPageProps {
+    params: Promise<{ symbol: string }>;
+}
+
+export default async function StockDetailsPage({ params }: StockPageProps) {
     const { symbol } = await params;
-    const session = await auth.api.getSession({ headers: await headers() });
-    const userEmail = session?.user?.email;
+    const decodedSymbol = decodeURIComponent(symbol);
+    const scriptUrl = `https://s3.tradingview.com/external-embedding/embed-widget-`;
 
-    let isInWatchlist = false;
-    if (userEmail) {
-        const watchlistSymbols = await getWatchlistSymbolsByEmail(userEmail);
-        isInWatchlist = watchlistSymbols.includes(symbol.toUpperCase());
-    }
-
-    const searchResults = await searchStocks(symbol);
-    const stockInfo = searchResults.find(s => s.symbol === symbol.toUpperCase());
-    const companyName = stockInfo?.name || symbol;
-
-    const scriptUrl = "https://s3.tradingview.com/external-embedding/embed-widget-";
+    const { isWatchlisted } = await checkWatchlistStatus(decodedSymbol);
 
     return (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-            {/* Left column */}
-            <div className="flex flex-col gap-8">
+        <div className="container mx-auto py-8 space-y-8">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold text-white">Stock Details: {decodedSymbol.toUpperCase()}</h1>
+                <AddToWatchlistButton symbol={decodedSymbol} initialIsWatchlisted={isWatchlisted} />
+            </div>
+            
+            <section className="grid w-full gap-8 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/50">
                 <TradingViewWidget
                     scriptUrl={`${scriptUrl}symbol-info.js`}
-                    config={SYMBOL_INFO_WIDGET_CONFIG(symbol)}
+                    config={SYMBOL_INFO_WIDGET_CONFIG(decodedSymbol)}
                     height={170}
                 />
-                <TradingViewWidget
-                    scriptUrl={`${scriptUrl}advanced-chart.js`}
-                    config={CANDLE_CHART_WIDGET_CONFIG(symbol)}
-                    height={600}
-                />
-                <TradingViewWidget
-                    scriptUrl={`${scriptUrl}advanced-chart.js`}
-                    config={BASELINE_WIDGET_CONFIG(symbol)}
-                    height={600}
-                />
-            </div>
+            </section>
 
-            {/* Right column */}
-            <div className="flex flex-col gap-8">
-                <WatchlistButton
-                    symbol={symbol}
-                    company={companyName}
-                    isInWatchlist={isInWatchlist}
-                    userEmail={userEmail}
-                />
+            <section className="grid w-full gap-8 border border-slate-800 rounded-xl overflow-hidden bg-[#141414]">
                 <TradingViewWidget
-                    scriptUrl={`${scriptUrl}technical-analysis.js`}
-                    config={TECHNICAL_ANALYSIS_WIDGET_CONFIG(symbol)}
-                    height={400}
+                    scriptUrl={`${scriptUrl}advanced-chart.js`}
+                    config={CANDLE_CHART_WIDGET_CONFIG(decodedSymbol)}
+                    height={DEFAULT_HEIGHT}
                 />
-                <TradingViewWidget
-                    scriptUrl={`${scriptUrl}symbol-profile.js`}
-                    config={COMPANY_PROFILE_WIDGET_CONFIG(symbol)}
-                    height={440}
-                />
-                <TradingViewWidget
-                    scriptUrl={`${scriptUrl}financials.js`}
-                    config={COMPANY_FINANCIALS_WIDGET_CONFIG(symbol)}
-                    height={464}
-                />
-            </div>
+            </section>
+
+            <section className="grid w-full lg:grid-cols-2 gap-8">
+                <div className="border border-slate-800 rounded-xl overflow-hidden bg-[#141414]">
+                    <TradingViewWidget
+                        scriptUrl={`${scriptUrl}symbol-profile.js`}
+                        config={COMPANY_PROFILE_WIDGET_CONFIG(decodedSymbol)}
+                        height={440}
+                    />
+                </div>
+                <div className="border border-slate-800 rounded-xl overflow-hidden bg-[#141414]">
+                    <TradingViewWidget
+                        scriptUrl={`${scriptUrl}financials.js`}
+                        config={COMPANY_FINANCIALS_WIDGET_CONFIG(decodedSymbol)}
+                        height={460}
+                    />
+                </div>
+            </section>
         </div>
     );
-};
-
-export default StockDetails;
+}

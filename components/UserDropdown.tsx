@@ -28,7 +28,7 @@ const UserDropdown = ({ user, initialStocks }: {user: User, initialStocks: Stock
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-3 text-gray-4 hover:text-yellow-500">
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src="https://avatars.github11usercontent.com/u/153423955?s=280&v=4" />
+                        <AvatarImage src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fcommons.wikimedia.org%2Fwiki%2FFile%3ASample_User_Icon.png&psig=AOvVaw0QjAN8670DwBaX2BrJM9Xw&ust=1768840007847000&source=images&cd=vfe&opi=89978449&ved=0CBIQjRxqFwoTCKjSodbAlZIDFQAAAAAdAAAAABAE" />
                         <AvatarFallback className="bg-yellow-500 text-yellow-900 text-sm font-bold">
                             {user.name[0]}
                         </AvatarFallback>
@@ -44,7 +44,7 @@ const UserDropdown = ({ user, initialStocks }: {user: User, initialStocks: Stock
                 <DropdownMenuLabel>
                     <div className="flex relative items-center gap-3 py-2">
                         <Avatar className="h-10 w-10">
-                            <AvatarImage src="https://avatars.github1usercontent.com/u/153423955?s=280&v=4" />
+                            <AvatarImage src="https://www.google.com/url?sa=i&url=https%3A%2F%2Fcommons.wikimedia.org%2Fwiki%2FFile%3ASample_User_Icon.png&psig=AOvVaw0QjAN8670DwBaX2BrJM9Xw&ust=1768840007847000&source=images&cd=vfe&opi=89978449&ved=0CBIQjRxqFwoTCKjSodbAlZIDFQAAAAAdAAAAABAE" />
                             <AvatarFallback className="bg-yellow-500 text-yellow-900 text-sm font-bold">
                                 {user.name[0]}
                             </AvatarFallback>
@@ -64,7 +64,7 @@ const UserDropdown = ({ user, initialStocks }: {user: User, initialStocks: Stock
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="hidden sm:block bg-gray-600"/>
                 <nav className="sm:hidden">
-                    <NavItems initialStocks={initialStocks} userEmail={user.email} />
+                    <NavItems initialStocks={initialStocks} />
                 </nav>
             </DropdownMenuContent>
         </DropdownMenu>

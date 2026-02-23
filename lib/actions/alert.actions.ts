@@ -1,80 +1,93 @@
-"use server";
+'use server';
 
-import { connectToDatabase } from "@/database/mongoose";
-import Alert from "@/database/models/alert.model";
-import { revalidatePath } from "next/cache";
+import { connectToDatabase } from '@/database/mongoose';
+import AlertRecord from '@/database/models/alert.model';
+import { auth } from '@/lib/better-auth/auth';
+import { headers } from 'next/headers';
+import { revalidatePath } from 'next/cache';
 
-export async function createAlert(email: string, data: {
-    symbol: string;
-    company: string;
-    logoUrl?: string;
-    condition: 'greater' | 'less' | 'equal';
-    targetPrice: number;
-    frequency: 'once' | 'daily';
-}) {
+export async function createAlert(symbol: string, targetPrice: number, condition: 'greater_than' | 'less_than') {
     try {
-        const mongoose = await connectToDatabase();
-        const db = mongoose.connection.db;
-        if (!db) throw new Error("Mongoose connection failed");
+        const session = await auth.api.getSession({
+            headers: await headers()
+        })
+        const userId = session?.user?.id;
+        if (!userId) {
+            return { error: 'Unauthorized' };
+        }
 
-        const user = await db.collection("user").findOne({ email });
-        if (!user) throw new Error("User not found");
-
-        const userId = (user.id as string) || String(user._id || '');
+        await connectToDatabase();
         
-        await Alert.create({
+        // Ensure no duplicate active alert for the exact same condition & price exists to prevent spam
+        const existing = await AlertRecord.findOne({
             userId,
-            ...data
+            symbol: symbol.toUpperCase(),
+            targetPrice,
+            condition,
+            isActive: true
         });
 
-        revalidatePath("/watchlist");
-        return { success: true };
-    } catch (error) {
-        console.error("Error creating alert:", error);
-        return { success: false, error: "Failed to create alert" };
+        if (existing) {
+             return { error: 'An identical active alert already exists for this stock.' };
+        }
+
+        const newAlert = new AlertRecord({
+            userId,
+            symbol: symbol.toUpperCase(),
+            targetPrice,
+            condition,
+            isActive: true
+        });
+
+        await newAlert.save();
+        revalidatePath('/watchlist');
+        
+        return { success: true, data: JSON.parse(JSON.stringify(newAlert)) };
+    } catch (e: any) {
+         console.error('Error creating alert:', e);
+         return { error: 'Failed to create price alert.' };
     }
 }
 
-export async function getAlertsByEmail(email: string): Promise<Alert[]> {
+export async function getUserActiveAlerts() {
     try {
-        const mongoose = await connectToDatabase();
-        const db = mongoose.connection.db;
-        if (!db) throw new Error("Mongoose connection failed");
+        const session = await auth.api.getSession({
+            headers: await headers()
+        })
+        const userId = session?.user?.id;
+        if (!userId) {
+            return { error: 'Unauthorized' };
+        }
 
-        const user = await db.collection("user").findOne({ email });
-        if (!user) return [];
-
-        const userId = (user.id as string) || String(user._id || '');
+        await connectToDatabase();
         
-        const alerts = await Alert.find({ userId }).sort({ createdAt: -1 }).lean();
+        const alerts = await AlertRecord.find({ userId, isActive: true }).sort({ createdAt: -1 }).lean();
         
-        return JSON.parse(JSON.stringify(alerts)) as Alert[];
-    } catch (error) {
-        console.error("Error fetching alerts:", error);
-        return [];
+        return { success: true, data: JSON.parse(JSON.stringify(alerts)) };
+    } catch (e: any) {
+         console.error('Error fetching alerts:', e);
+         return { error: 'Failed to fetch active alerts.' };
     }
 }
 
 export async function deleteAlert(alertId: string) {
     try {
-        await connectToDatabase();
-        await Alert.findByIdAndDelete(alertId);
-        revalidatePath("/watchlist");
-        return { success: true };
-    } catch (error) {
-        console.error("Error deleting alert:", error);
-        return { success: false, error: "Failed to delete alert" };
-    }
-}
+        const session = await auth.api.getSession({
+            headers: await headers()
+        })
+        const userId = session?.user?.id;
+        if (!userId) {
+            return { error: 'Unauthorized' };
+        }
 
-export async function toggleAlertStatus(alertId: string, isActive: boolean) {
-    try {
         await connectToDatabase();
-        await Alert.findByIdAndUpdate(alertId, { isActive });
-        revalidatePath("/watchlist");
+        
+        await AlertRecord.findOneAndDelete({ _id: alertId, userId });
+        
+        revalidatePath('/watchlist');
         return { success: true };
-    } catch (error) {
-        console.error("Error toggling alert status:", error);
-        return { success: false, error: "Failed to update alert" };
+    } catch (e: any) {
+         console.error('Error deleting alert:', e);
+         return { error: 'Failed to delete alert.' };
     }
 }

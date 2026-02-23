@@ -3,9 +3,6 @@
 import { getDateRange, validateArticle, formatArticle } from '@/lib/utils';
 import { POPULAR_STOCK_SYMBOLS } from '@/lib/constants';
 import { cache } from 'react';
-import { getWatchlistSymbolsByEmail } from '@/lib/actions/watchlist.actions';
-import { auth } from '@/lib/better-auth/auth';
-import { headers } from 'next/headers';
 
 // Define internal interface for mapping profiles
 interface StockProfile {
@@ -108,33 +105,8 @@ export async function getNews(symbols?: string[]): Promise<MarketNewsArticle[]> 
     }
 }
 
-export async function getQuote(symbol: string): Promise<QuoteData> {
-    const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
-    const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(symbol.toUpperCase())}&token=${token}`;
-    return await fetchJSON<QuoteData>(url, 60); // Cache for 1 minute
-}
-
-export async function getCompanyProfile(symbol: string): Promise<ProfileData> {
-    const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
-    const url = `${FINNHUB_BASE_URL}/stock/profile2?symbol=${encodeURIComponent(symbol.toUpperCase())}&token=${token}`;
-    return await fetchJSON<ProfileData>(url, 3600); // Cache for 1 hour
-}
-
-export async function getFinancials(symbol: string): Promise<FinancialsData> {
-    const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
-    const url = `${FINNHUB_BASE_URL}/stock/metric?symbol=${encodeURIComponent(symbol.toUpperCase())}&metric=all&token=${token}`;
-    return await fetchJSON<FinancialsData>(url, 3600); // Cache for 1 hour
-}
-
 export const searchStocks = cache(async (query?: string): Promise<StockWithWatchlistStatus[]> => {
     try {
-        const session = await auth.api.getSession({ headers: await headers() });
-        const userEmail = session?.user?.email;
-        let watchlistSymbols: string[] = [];
-        if (userEmail) {
-            watchlistSymbols = await getWatchlistSymbolsByEmail(userEmail);
-        }
-
         const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
         if (!token) {
             // If no token, log and return empty to avoid throwing per requirements
@@ -201,7 +173,7 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
                     name,
                     exchange,
                     type,
-                    isInWatchlist: watchlistSymbols.includes(upper),
+                    isInWatchlist: false,
                 };
                 return item;
             })
@@ -213,3 +185,44 @@ export const searchStocks = cache(async (query?: string): Promise<StockWithWatch
         return [];
     }
 });
+
+
+export async function getCurrentPrice(symbol: string): Promise<number | null> {
+    try {
+         const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+         if (!token) return null;
+         
+         const url = `${FINNHUB_BASE_URL}/quote?symbol=${encodeURIComponent(symbol)}&token=${token}`;
+         const data = await fetchJSON<{ c: number }>(url, 60); // cache 1 min
+         return data?.c || null;
+    } catch (err) {
+        console.error('getCurrentPrice error:', err);
+        return null;
+    }
+}
+
+export async function getStockPriceHistory(symbol: string, fromUnix: number, toUnix: number): Promise<{c: number[]} | null> {
+    try {
+        const token = process.env.FINNHUB_API_KEY ?? NEXT_PUBLIC_FINNHUB_API_KEY;
+        if (!token) return null;
+        
+        const url = `${FINNHUB_BASE_URL}/stock/candle?symbol=${encodeURIComponent(symbol)}&resolution=D&from=${fromUnix}&to=${toUnix}&token=${token}`;
+        
+        // Use standard fetch here instead of fetchJSON to manually handle 403s without throwing exceptions
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) {
+            console.error(`Finnhub API error (${res.status}) for ${symbol} candles.`);
+            return null;
+        }
+        
+        const data = await res.json();
+        
+        if (data && data.s === 'ok' && Array.isArray(data.c)) {
+            return { c: data.c };
+        }
+        return null;
+    } catch(err) {
+         console.error(`getStockPriceHistory error for ${symbol}:`, err);
+         return null;
+    }
+}
