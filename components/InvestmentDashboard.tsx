@@ -4,8 +4,9 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Plus, Trash2, Sparkles, Save, ChevronLeft, ChevronRight } from 'lucide-react';
-import { updateFinanceRecord, generateFinanceInsights } from '@/lib/actions/finance.actions.server';
+import { Loader2, Plus, Trash2, Sparkles, Save, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { updateFinanceRecord, generateFinanceInsights, generateStrictAudit } from '@/lib/actions/finance.actions.server';
+import { ExpenseAnalysisModal } from './ExpenseAnalysisModal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -24,6 +25,9 @@ export default function InvestmentDashboard({
     const [isPending, startTransition] = useTransition();
     const [isGenerating, setIsGenerating] = useState(false);
     const [insights, setInsights] = useState<string | null>(null);
+    const [isGeneratingAudit, setIsGeneratingAudit] = useState(false);
+    const [strictAuditData, setStrictAuditData] = useState<string | null>(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [incomes, setIncomes] = useState<Income[]>(initialRecord.incomes || []);
     const [expenses, setExpenses] = useState<Expense[]>(initialRecord.expenses || []);
@@ -64,6 +68,16 @@ export default function InvestmentDashboard({
         setIsGenerating(false);
     };
 
+    const handleGenerateStrictAudit = async () => {
+        setIsModalOpen(true);
+        setIsGeneratingAudit(true);
+        setStrictAuditData(null);
+        await handleSave(); // save before audit
+        const result = await generateStrictAudit(selectedMonth);
+        setStrictAuditData(result);
+        setIsGeneratingAudit(false);
+    };
+
     const handleAddIncome = () => {
         if (!newIncome.source) return;
         setIncomes([...incomes, { source: newIncome.source, planned: newIncome.planned || 0, actual: newIncome.actual || 0 }]);
@@ -97,6 +111,8 @@ export default function InvestmentDashboard({
     };
 
     return (
+        <>
+        <ExpenseAnalysisModal open={isModalOpen} onOpenChange={setIsModalOpen} data={strictAuditData} loading={isGeneratingAudit} />
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Month Selector & Global Actions */}
             <div className="flex flex-col sm:flex-row justify-between items-center bg-[#111827] p-4 rounded-2xl border border-slate-800 shadow-md">
@@ -152,11 +168,11 @@ export default function InvestmentDashboard({
                             </div>
                             <div className="w-28">
                                 <label className="text-xs text-slate-400 uppercase font-medium mb-1 block">Planned ($)</label>
-                                <Input type="number" value={newIncome.planned || ''} onChange={e => setNewIncome({...newIncome, planned: Number(e.target.value)})} className="h-9 bg-slate-900 border-slate-700" placeholder="0" />
+                                <Input type="number" value={newIncome.planned || ''} onChange={e => setNewIncome({...newIncome, planned: Number(e.target.value)})} className="h-9 bg-slate-900 border-slate-700" placeholder="0" min="0" />
                             </div>
                             <div className="w-28">
                                 <label className="text-xs text-slate-400 uppercase font-medium mb-1 block">Actual ($)</label>
-                                <Input type="number" value={newIncome.actual || ''} onChange={e => setNewIncome({...newIncome, actual: Number(e.target.value)})} className="h-9 bg-slate-900 border-slate-700" placeholder="0" />
+                                <Input type="number" value={newIncome.actual || ''} onChange={e => setNewIncome({...newIncome, actual: Number(e.target.value)})} className="h-9 bg-slate-900 border-slate-700" placeholder="0" min="0" />
                             </div>
                             <Button onClick={handleAddIncome} className="h-9 bg-emerald-600 hover:bg-emerald-500 text-white">
                                 <Plus className="w-4 h-4" />
@@ -179,8 +195,32 @@ export default function InvestmentDashboard({
                                     {incomes.map((inc, i) => (
                                         <tr key={i} className="border-t border-slate-800/50 hover:bg-slate-800/30 transition-colors group">
                                             <td className="px-5 py-3 font-medium text-slate-300">{inc.source}</td>
-                                            <td className="px-5 py-3 text-slate-400">${inc.planned.toLocaleString()}</td>
-                                            <td className="px-5 py-3 text-slate-400">${inc.actual.toLocaleString()}</td>
+                                            <td className="px-5 py-3 text-slate-400">
+                                                <Input 
+                                                    type="number" 
+                                                    value={inc.planned} 
+                                                    onChange={(e) => {
+                                                        const newIncomes = [...incomes];
+                                                        newIncomes[i].planned = Number(e.target.value);
+                                                        setIncomes(newIncomes);
+                                                    }} 
+                                                    className="w-24 h-8 bg-slate-900 border-slate-700 text-slate-300 px-2"
+                                                    min="0"
+                                                />
+                                            </td>
+                                            <td className="px-5 py-3 text-slate-400">
+                                                <Input 
+                                                    type="number" 
+                                                    value={inc.actual} 
+                                                    onChange={(e) => {
+                                                        const newIncomes = [...incomes];
+                                                        newIncomes[i].actual = Number(e.target.value);
+                                                        setIncomes(newIncomes);
+                                                    }} 
+                                                    className="w-24 h-8 bg-slate-900 border-slate-700 text-slate-300 px-2"
+                                                    min="0"
+                                                />
+                                            </td>
                                             <td className="px-5 py-3 font-medium">
                                                 {renderVariance(inc.planned, inc.actual, 'income')}
                                             </td>
@@ -226,11 +266,11 @@ export default function InvestmentDashboard({
                             </div>
                             <div className="w-28">
                                 <label className="text-xs text-slate-400 uppercase font-medium mb-1 block">Planned ($)</label>
-                                <Input type="number" value={newExpense.planned || ''} onChange={e => setNewExpense({...newExpense, planned: Number(e.target.value)})} className="h-9 bg-slate-900 border-slate-700" placeholder="0" />
+                                <Input type="number" value={newExpense.planned || ''} onChange={e => setNewExpense({...newExpense, planned: Number(e.target.value)})} className="h-9 bg-slate-900 border-slate-700" placeholder="0" min="0" />
                             </div>
                             <div className="w-28">
                                 <label className="text-xs text-slate-400 uppercase font-medium mb-1 block">Actual ($)</label>
-                                <Input type="number" value={newExpense.actual || ''} onChange={e => setNewExpense({...newExpense, actual: Number(e.target.value)})} className="h-9 bg-slate-900 border-slate-700" placeholder="0" />
+                                <Input type="number" value={newExpense.actual || ''} onChange={e => setNewExpense({...newExpense, actual: Number(e.target.value)})} className="h-9 bg-slate-900 border-slate-700" placeholder="0" min="0" />
                             </div>
                             <Button onClick={handleAddExpense} className="h-9 bg-amber-600 hover:bg-amber-500 text-white">
                                 <Plus className="w-4 h-4" />
@@ -259,8 +299,32 @@ export default function InvestmentDashboard({
                                                     {exp.type}
                                                 </span>
                                             </td>
-                                            <td className="px-5 py-3 text-slate-400">${exp.planned.toLocaleString()}</td>
-                                            <td className="px-5 py-3 text-slate-400">${exp.actual.toLocaleString()}</td>
+                                            <td className="px-5 py-3 text-slate-400">
+                                                <Input 
+                                                    type="number" 
+                                                    value={exp.planned} 
+                                                    onChange={(e) => {
+                                                        const newExp = [...expenses];
+                                                        newExp[i].planned = Number(e.target.value);
+                                                        setExpenses(newExp);
+                                                    }} 
+                                                    className="w-24 h-8 bg-slate-900 border-slate-700 text-slate-300 px-2"
+                                                    min="0"
+                                                />
+                                            </td>
+                                            <td className="px-5 py-3 text-slate-400">
+                                                <Input 
+                                                    type="number" 
+                                                    value={exp.actual} 
+                                                    onChange={(e) => {
+                                                        const newExp = [...expenses];
+                                                        newExp[i].actual = Number(e.target.value);
+                                                        setExpenses(newExp);
+                                                    }} 
+                                                    className="w-24 h-8 bg-slate-900 border-slate-700 text-slate-300 px-2"
+                                                    min="0"
+                                                />
+                                            </td>
                                             <td className="px-5 py-3 font-medium">
                                                 {renderVariance(exp.planned, exp.actual, 'expense')}
                                             </td>
@@ -296,6 +360,7 @@ export default function InvestmentDashboard({
                                     type="number" value={savingsGoal.planned || ''} placeholder="0" 
                                     onChange={(e) => setSavingsGoal({...savingsGoal, planned: Number(e.target.value)})} 
                                     className="bg-slate-900 border-slate-700"
+                                    min="0"
                                 />
                             </div>
                             <div>
@@ -304,6 +369,7 @@ export default function InvestmentDashboard({
                                     type="number" value={savingsGoal.actual || ''} placeholder="0" 
                                     onChange={(e) => setSavingsGoal({...savingsGoal, actual: Number(e.target.value)})} 
                                     className="bg-slate-900 border-slate-700"
+                                    min="0"
                                 />
                             </div>
                             <div className="pt-2 border-t border-slate-800 flex justify-between items-center text-sm">
@@ -315,12 +381,11 @@ export default function InvestmentDashboard({
                         </div>
                     </div>
 
-                    {/* AI INSIGHTS */}
-                    <div className="bg-gradient-to-b from-slate-900 to-[#111827] rounded-3xl border border-slate-800 shadow-lg p-6 relative overflow-hidden">
-                        {/* Glow effect */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl" />
+                    {/* AI INSIGHTS (FREE TEXT) */}
+                    <div className="bg-gradient-to-b from-slate-900 to-[#111827] rounded-3xl border border-slate-800 shadow-lg p-6 relative overflow-hidden flex flex-col h-[280px]">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
                         
-                        <div className="flex items-center gap-2 mb-4">
+                        <div className="flex items-center gap-2 mb-4 shrink-0">
                             <Sparkles className="w-5 h-5 text-emerald-400" />
                             <h2 className="text-lg font-semibold text-emerald-50">Intelligent Insights</h2>
                         </div>
@@ -328,31 +393,69 @@ export default function InvestmentDashboard({
                         {insights ? (
                             <div className="prose prose-invert prose-sm max-w-none 
                                 prose-p:leading-snug
-                                prose-ul:my-2 prose-ul:list-disc prose-li:text-slate-300 prose-li:my-1
-                                prose-strong:text-emerald-300 prose-strong:font-medium">
+                                prose-ul:my-1 prose-ul:list-disc prose-li:text-slate-300 prose-li:my-0.5
+                                prose-strong:text-emerald-300 prose-strong:font-medium
+                                overflow-y-auto pr-2 pb-2 flex-1
+                                [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-700/50 [&::-webkit-scrollbar-thumb]:rounded-full">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                                     {insights}
                                 </ReactMarkdown>
                             </div>
                         ) : (
-                            <div className="py-8 text-center bg-slate-800/20 rounded-xl border border-slate-800/50">
-                                {isGenerating ? (
-                                    <div className="flex flex-col items-center gap-3">
-                                        <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
-                                        <p className="text-sm text-slate-400">Analyzing your data...</p>
-                                    </div>
-                                ) : (
-                                    <p className="text-sm text-slate-500 max-w-[200px] mx-auto">
-                                        Click &quot;AI Insights&quot; to generate a neutral analysis of your monthly spending patterns.
-                                    </p>
-                                )}
+                            <div className="flex-1 flex items-center justify-center">
+                                <div className="p-6 text-center w-full bg-slate-800/20 rounded-xl border border-slate-800/50">
+                                    {isGenerating ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
+                                            <p className="text-sm text-slate-400">Analyzing expenses...</p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-3">
+                                            <p className="text-xs text-slate-500 max-w-[200px] mx-auto">
+                                                Generate a brief AI summary of your monthly spending.
+                                            </p>
+                                            <Button 
+                                                size="sm" variant="outline" 
+                                                className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 h-8 text-xs font-semibold rounded-full"
+                                                onClick={handleGenerateInsights}
+                                            >
+                                                <Sparkles className="w-3 h-3 mr-2" />
+                                                Generate Overview
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
+                    </div>
+
+                    {/* AI STRICT AUDIT LAUNCHER (PREMIUM) */}
+                    <div className="bg-gradient-to-br from-indigo-900/20 to-slate-900 rounded-3xl border border-indigo-500/20 shadow-lg p-6 relative overflow-hidden group cursor-pointer transition-all hover:border-indigo-500/40 flex flex-col items-center justify-center text-center h-[160px]" onClick={handleGenerateStrictAudit}>
+                        {/* Glow effect */}
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
+                        
+                        <div className="flex items-center gap-2 mb-2">
+                            <Zap className="w-5 h-5 text-indigo-400 group-hover:text-amber-400 transition-colors" />
+                            <h2 className="text-base font-semibold text-indigo-50">Run Strict Audit</h2>
+                        </div>
+                        
+                        <p className="text-xs text-indigo-200/60 max-w-[220px] mb-4 group-hover:text-indigo-200 transition-colors">
+                            Unlock definitive spending breakdowns & an aggressive financial action plan.
+                        </p>
+                        
+                        <Button 
+                            size="sm"
+                            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20 rounded-full px-5 h-8 text-xs font-semibold"
+                            onClick={(e) => { e.stopPropagation(); handleGenerateStrictAudit(); }}
+                        >
+                            Audit Me
+                        </Button>
                     </div>
 
                 </div>
 
             </div>
         </div>
+        </>
     );
 }

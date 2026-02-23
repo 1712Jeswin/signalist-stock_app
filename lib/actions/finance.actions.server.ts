@@ -5,7 +5,7 @@ import FinanceRecord from "@/database/models/finance.model";
 import { auth } from "@/lib/better-auth/auth";
 import { headers } from "next/headers";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { FINANCE_INSIGHTS_PROMPT } from "@/lib/prompts.ai";
+import { FINANCE_SHORT_INSIGHTS_PROMPT, FINANCE_STRICT_AUDIT_PROMPT } from "@/lib/prompts.ai";
 
 export async function getFinanceRecord(month: string) {
     try {
@@ -75,7 +75,7 @@ export async function generateFinanceInsights(month: string) {
             savingsGoal: record.savingsGoal
         }, null, 2);
 
-        const prompt = FINANCE_INSIGHTS_PROMPT.replace('{{contextData}}', contextData);
+        const prompt = FINANCE_SHORT_INSIGHTS_PROMPT.replace('{{contextData}}', contextData);
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
         const model = genAI.getGenerativeModel({
@@ -90,5 +90,39 @@ export async function generateFinanceInsights(month: string) {
      } catch (error) {
          console.error("Error generating finance insights:", error);
          return "Failed to generate insights. Please try again later.";
+     }
+}
+
+export async function generateStrictAudit(month: string) {
+     try {
+        const record = await getFinanceRecord(month);
+        if (!record) throw new Error("No record found for insights");
+
+        // Format data to string to pass to AI
+        const contextData = JSON.stringify({
+            month: record.month,
+            incomes: record.incomes.map((i: any) => ({ source: i.source, planned: i.planned, actual: i.actual })),
+            expenses: record.expenses.map((e: any) => ({ category: e.category, type: e.type, planned: e.planned, actual: e.actual })),
+            savingsGoal: record.savingsGoal
+        }, null, 2);
+
+        const prompt = FINANCE_STRICT_AUDIT_PROMPT.replace('{{contextData}}', contextData);
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            systemInstruction: prompt,
+            generationConfig: {
+                responseMimeType: "application/json",
+            }
+        });
+
+        const result = await model.generateContent("Analyze my financial data aggressively.");
+        
+        return result.response.text();
+
+     } catch (error) {
+         console.error("Error generating strict audit:", error);
+         throw new Error("Failed to generate strict audit.");
      }
 }
