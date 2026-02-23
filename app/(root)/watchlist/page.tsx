@@ -8,6 +8,7 @@ import { Loader2, TrendingUp, Pin, PinOff, Search, ChevronRight, X, TrendingDown
 import { useRouter } from 'next/navigation';
 import { FinancialGuidePanel } from "@/components/FinancialGuidePanel";
 import { SetAlertModal } from "@/components/SetAlertModal";
+import { PredictionModal } from "@/components/PredictionModal";
 
 // --- Types ---
 interface WatchlistItem {
@@ -32,6 +33,9 @@ export default function WatchlistPage() {
     // Modal state
     const [alertModalOpen, setAlertModalOpen] = useState(false);
     const [selectedAlertSymbol, setSelectedAlertSymbol] = useState<string | null>(null);
+    
+    const [predictionModalOpen, setPredictionModalOpen] = useState(false);
+    const [selectedPredictionSymbol, setSelectedPredictionSymbol] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchItems = async () => {
@@ -171,7 +175,10 @@ export default function WatchlistPage() {
                                             <TableRow 
                                                 key={item.symbol} 
                                                 className="border-b border-slate-800/50 hover:bg-slate-800/40 transition-colors cursor-pointer group"
-                                                onClick={() => router.push(`/stocks/${item.symbol}`)}
+                                                onClick={() => {
+                                                    setSelectedPredictionSymbol(item.symbol);
+                                                    setPredictionModalOpen(true);
+                                                }}
                                             >
                                                 <TableCell className="font-bold text-slate-100 py-4 px-6">
                                                     <div className="flex items-center gap-3">
@@ -330,6 +337,12 @@ export default function WatchlistPage() {
                         });
                     }
                 }} 
+            />
+
+            <PredictionModal 
+               symbol={selectedPredictionSymbol}
+               open={predictionModalOpen}
+               onOpenChange={setPredictionModalOpen}
             />
         </div>
     );
