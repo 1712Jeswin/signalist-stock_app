@@ -5,6 +5,8 @@ export interface WatchlistItem extends Document {
   symbol: string;
   company: string;
   addedAt: Date;
+  pinned: boolean;
+  pinnedAt?: Date;
 }
 
 const WatchlistSchema = new Schema<WatchlistItem>({
@@ -27,6 +29,13 @@ const WatchlistSchema = new Schema<WatchlistItem>({
   addedAt: {
     type: Date,
     default: Date.now,
+  },
+  pinned: {
+    type: Boolean,
+    default: false,
+  },
+  pinnedAt: {
+    type: Date,
   },
 });
 

@@ -1,10 +1,12 @@
 import {inngest} from "@/lib/inngest/client";
 import {NEWS_SUMMARY_EMAIL_PROMPT, PERSONALIZED_WELCOME_EMAIL_PROMPT} from "@/lib/inngest/prompts";
-import {sendNewsSummaryEmail, sendWelcomeEmail} from "@/lib/nodemailer";
+import {sendNewsSummaryEmail, sendWelcomeEmail, sendAlertEmail} from "@/lib/nodemailer";
 import {getAllUsersForNewsEmail} from "@/lib/actions/user.actions";
 import { getWatchlistSymbolsByEmail } from "@/lib/actions/watchlist.actions";
-import { getNews } from "@/lib/actions/finnhub.actions";
+import { getNews, getCurrentPrice } from "@/lib/actions/finnhub.actions";
 import { getFormattedTodayDate } from "@/lib/utils";
+import AlertRecord from '@/database/models/alert.model';
+import { connectToDatabase } from '@/database/mongoose';
 
 export const sendSignUpEmail = inngest.createFunction(
     { id: 'sign-up-email' },
@@ -120,3 +122,102 @@ export const sendDailyNewsSummary = inngest.createFunction(
         return { success: true, message: 'Daily news summary emails sent successfully' }
     }
 )
+
+export const checkPriceAlerts = inngest.createFunction(
+    { id: 'check-price-alerts' },
+    [ { event: 'app/check.alerts' }, { cron: '0 * * * *' } ], // Run every hour
+    async ({ step }) => {
+        // Step 1: Get all active alerts with user emails
+        const alertsWithUsers = await step.run('get-active-alerts', async () => {
+            const mongoose = await connectToDatabase();
+            
+            // Look up all active alerts
+            const activeAlerts = await AlertRecord.find({ isActive: true }).lean();
+            if (!activeAlerts || activeAlerts.length === 0) return [];
+
+            // Get unique user IDs to fetch emails
+            const userIds = [...new Set(activeAlerts.map(a => a.userId))];
+            
+            // Query the 'user' collection created by better-auth adapter
+            const db = mongoose.connection.db;
+            if(!db) throw new Error("Database connection error");
+
+            const users = await db.collection('user').find({ _id: { $in: userIds } }).project({ _id: 1, email: 1, name: 1 }).toArray();
+            
+            const userMap = new Map(users.map(u => [u._id.toString(), u]));
+
+            return activeAlerts.map(alert => ({
+                alert,
+                user: userMap.get(alert.userId)
+            })).filter(item => item.user); // Only keep alerts where we found the user
+        });
+
+        if (alertsWithUsers.length === 0) {
+            return { success: true, message: 'No active alerts to process' };
+        }
+
+        // Step 2: Extract unique symbols and fetch their current prices
+        const uniqueSymbols = [...new Set(alertsWithUsers.map(item => item.alert.symbol))];
+        
+        const currentPrices = await step.run('fetch-current-prices', async () => {
+            const prices: Record<string, number> = {};
+            for (const symbol of uniqueSymbols) {
+                try {
+                    const price = await getCurrentPrice(symbol);
+                    if (price !== null) {
+                        prices[symbol] = price;
+                    }
+                } catch (error) {
+                    console.error(`Failed to fetch price for ${symbol}:`, error);
+                }
+            }
+            return prices;
+        });
+
+        // Step 3: Evaluate conditions and trigger emails
+        const triggeredAlerts = await step.run('evaluate-and-trigger-alerts', async () => {
+             const triggered = [];
+             
+             for (const { alert, user } of alertsWithUsers) {
+                 const currentPrice = currentPrices[alert.symbol];
+                 if (!currentPrice || !user || !user.email) continue;
+                 
+                 let isTriggered = false;
+                 
+                 if (alert.condition === 'greater_than' && currentPrice >= alert.targetPrice) {
+                     isTriggered = true;
+                 } else if (alert.condition === 'less_than' && currentPrice <= alert.targetPrice) {
+                     isTriggered = true;
+                 }
+
+                 if (isTriggered) {
+                      try {
+                          await sendAlertEmail({
+                              email: user.email,
+                              company: alert.symbol, // Best effort fallback if full company name requires another fetch
+                              symbol: alert.symbol,
+                              targetPrice: alert.targetPrice,
+                              currentPrice,
+                              condition: alert.condition as 'greater_than' | 'less_than'
+                          });
+                          
+                          // Deactivate alert
+                          await connectToDatabase();
+                          await AlertRecord.findByIdAndUpdate(alert._id, { isActive: false });
+                          
+                          triggered.push(alert._id);
+                      } catch (emailError) {
+                          console.error(`Failed to send alert email for ${alert.symbol} to ${user.email}`, emailError);
+                      }
+                 }
+             }
+             
+             return triggered;
+        });
+
+        return { 
+            success: true, 
+            message: `Evaluated ${alertsWithUsers.length} alerts. Triggered ${triggeredAlerts.length} emails.` 
+        };
+    }
+);

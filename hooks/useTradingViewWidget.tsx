@@ -19,11 +19,11 @@ const useTradingViewWidget = (scriptUrl: string, config: Record<string, unknown>
             containerRef.current.append(script);
             containerRef.current.dataset.loaded = 'true';
 
+            const currentContainer = containerRef.current;
             return () => {
-                if(containerRef.current){
-                    containerRef.current.innerHTML = ``;
-                    // eslint-disable-next-line react-hooks/exhaustive-deps
-                    delete containerRef.current.dataset.loaded;
+                if(currentContainer){
+                    currentContainer.innerHTML = ``;
+                    delete currentContainer.dataset.loaded;
                 }
             }
         },

@@ -4,6 +4,7 @@ export const NAV_ITEMS = [
     { href: '/', label: 'Dashboard' },
     { href: '/search', label: 'Search' },
     { href: '/watchlist', label: 'Watchlist' },
+    { href: '/investment', label: 'Investment' },
 ];
 
 // Sign-up form select options
@@ -34,10 +35,9 @@ export const ALERT_TYPE_OPTIONS = [
 ];
 
 export const CONDITION_OPTIONS = [
-    { value: 'greater', label: 'Price greater than (>)' },
-    { value: 'less', label: 'Price less than (<)' },
-    { value: 'equal', label: 'Price equals (=)' },
-] as const;
+    { value: 'greater', label: 'Greater than (>)' },
+    { value: 'less', label: 'Less than (<)' },
+];
 
 // TradingView Charts
 export const MARKET_OVERVIEW_WIDGET_CONFIG = {

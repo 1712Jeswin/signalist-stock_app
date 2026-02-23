@@ -10,6 +10,7 @@
     "test:db": "node scripts\\test-db.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -43,6 +44,8 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "^8.6.0",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.14.0",
     "inngest": "^3.49.3",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.562.0",
@@ -55,9 +58,11 @@
     "react-day-picker": "^9.13.0",
     "react-dom": "19.2.3",
     "react-hook-form": "^7.71.1",
+    "react-markdown": "^10.1.0",
     "react-resizable-panels": "^4.4.1",
     "react-select-country-list": "^2.2.3",
     "recharts": "^2.15.4",
+    "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "vaul": "^1.1.2",
