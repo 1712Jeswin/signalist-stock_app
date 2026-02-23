@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Loader2, TrendingUp, TrendingDown, Minus, Activity, Target, ShieldAlert, Zap, X, ChevronDown } from "lucide-react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis, CartesianGrid } from "recharts";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis, XAxis, CartesianGrid } from "recharts";
 import { AIPredictionResponse } from "@/lib/predictions/prediction.types";
 
 interface PredictionModalProps {
@@ -58,7 +58,15 @@ export function PredictionModal({ symbol, open, onOpenChange }: PredictionModalP
     return data.priceHistory.slice(sliceAmount);
   };
 
-  const chartData = getSlicedHistory().map((price, i) => ({ day: i, price }));
+  const chartData = getSlicedHistory().map((price, i, arr) => {
+    const daysAgo = arr.length - 1 - i;
+    const d = new Date();
+    d.setDate(d.getDate() - daysAgo);
+    return {
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      price
+    };
+  });
   
   // Trend Colors
   let TrendIcon = Minus;
@@ -214,12 +222,13 @@ export function PredictionModal({ symbol, open, onOpenChange }: PredictionModalP
                               </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.4} />
-                            <YAxis domain={['dataMin', 'dataMax']} hide />
+                            <XAxis dataKey="date" stroke="#475569" fontSize={11} tickLine={false} axisLine={false} minTickGap={20} />
+                            <YAxis domain={['auto', 'auto']} tickFormatter={(val) => `$${val.toFixed(0)}`} stroke="#475569" fontSize={11} tickLine={false} axisLine={false} width={40} />
                             <Tooltip 
                               contentStyle={{ backgroundColor: "#0f172a", borderColor: "#334155", color: "#f8fafc", borderRadius: "12px", boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)" }}
                               itemStyle={{ color: "#818cf8", fontWeight: "bold", fontSize: "16px" }}
                               formatter={(value: number) => [`$${value.toFixed(2)}`, "Close"]}
-                              labelFormatter={() => ""}
+                              labelFormatter={(label) => label}
                               cursor={{ stroke: '#475569', strokeWidth: 1, strokeDasharray: '4 4' }}
                             />
                             <Area 
