@@ -2,6 +2,19 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Environment Setup
+
+Before running the development server, you need to set up your environment variables. 
+Copy the provided `.env.example` file to `.env`:
+
+```bash
+cp .env.example .env
+```
+
+Fill in the required values in your `.env` file.
+
+### Running the App
+
 First, run the development server:
 
 ```bash
