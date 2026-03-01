@@ -40,7 +40,7 @@ export function PredictionModal({ symbol, open, onOpenChange }: PredictionModalP
         const json = await res.json();
         setData(json);
       } catch (err: any) {
-        setError(err.message || "Something went wrong fetching the prediction data.");
+        setError(err.message || "Something went wrong while fetching the prediction data.");
       } finally {
         setLoading(false);
       }
