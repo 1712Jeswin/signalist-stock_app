@@ -46,6 +46,8 @@ export function PredictionModal({ symbol, open, onOpenChange }: PredictionModalP
       }
     };
 
+    // Fetch options
+
     fetchPrediction();
   }, [symbol, open]);
 
