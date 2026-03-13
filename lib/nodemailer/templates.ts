@@ -1,5 +1,3 @@
-// Basic Templates
-
 export const WELCOME_EMAIL_TEMPLATE = `<!DOCTYPE html>
 <html lang="en">
 <head>
