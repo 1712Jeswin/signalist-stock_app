@@ -127,7 +127,7 @@ export default function SearchCommand({ renderAs = 'button', label = 'Add stock'
                                                     variant="ghost" 
                                                     size="icon"
                                                     className={`h-10 w-10 rounded-xl transition-all ${isAdded ? 'bg-yellow-500/10 hover:bg-yellow-500/20' : 'hover:bg-slate-700'}`}
-                                                    onClick={(e) => handleAddToWatchlist(e, stock.symbol)}
+                                                    onClick={(error) => handleAddToWatchlist(error, stock.symbol)}
                                                     disabled={isPending || isAdded}
                                                     title={isAdded ? "Added to watchlist" : "Add to watchlist"}
                                                 >
