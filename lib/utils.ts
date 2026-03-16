@@ -5,6 +5,8 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
+// Utils page
+
 export const formatTimeAgo = (timestamp: number) => {
     const now = Date.now();
     const diffInMs = now - timestamp * 1000; // Convert to milliseconds
