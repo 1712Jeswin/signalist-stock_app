@@ -36,6 +36,7 @@ export const sendNewsSummaryEmail = async (
 
 
 // ! Mail Options for real time mailing
+
     const mailOptions = {
         from: `"Signalist News" <signalist@jsmastery.pro>`,
         to: email,

@@ -265,6 +265,8 @@ export const COMPANY_FINANCIALS_WIDGET_CONFIG = (symbol: string) => ({
     largeChartUrl: '',
 });
 
+// ! Basic constants for the app
+
 export const POPULAR_STOCK_SYMBOLS = [
     // Tech Giants (the big technology companies)
     'AAPL',

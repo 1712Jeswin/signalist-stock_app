@@ -39,6 +39,7 @@ export const WELCOME_EMAIL_TEMPLATE = `<!DOCTYPE html>
                 border-color: #30333A !important;
             }
         }
+
         
         @media only screen and (max-width: 600px) {
             .email-container {
