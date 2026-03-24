@@ -5,6 +5,9 @@ import { nextCookies} from "better-auth/next-js";
 
 let authInstance: ReturnType<typeof betterAuth> | null = null;
 
+// Added Authentication string and connected with mongoose db
+
+
 export const getAuth = async () => {
     if(authInstance) return authInstance;
 
